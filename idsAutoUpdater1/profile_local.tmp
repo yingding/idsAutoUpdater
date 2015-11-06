@@ -1,0 +1,32 @@
+#####################################
+#   Autor: yingding; VI.3; 2009-10-21
+#####################################
+
+setterm -blength 0
+#JAVA_HOME=/usr/lib64/jvm/jre
+#export JAVA_HOME
+INFORMIXDIR=/opt/informix
+export INFORMIXDIR
+
+INFORMIXSQLHOSTS=$INFORMIXDIR/etc/sqlhosts
+ONCONFIG=onconfig
+INFORMIXSERVER=demo
+SERVERNUM=0
+export INFORMIXSQLHOSTS ONCONFIG INFORMIXSERVER SERVERNUM
+
+DB_LOCALE=de_de.8859-1@bun1
+export DB_LOCALE
+CLIENT_LOCALE=de_de.8859-1@bun1
+export CLIENT_LOCALE
+SERVER_LOCALE=de_de.8859-1@bun1
+export SERVER_LOCALE
+
+DBDATE="DMY4."
+export DBDATE
+
+DBMONEY=","
+export DBMONEY
+
+PATH=$PATH:$INFORMIXDIR/bin
+#PATH=$PATH:$JAVA_HOME/bin
+export PATH

@@ -1,0 +1,400 @@
+#**************************************************************************
+#
+#  Licensed Material - Property Of IBM
+#
+#  "Restricted Materials of IBM"
+#
+#  IBM Informix Dynamic Server
+#  (c) Copyright IBM Corporation 1996, 2006 All rights reserved.
+#
+#  Title:       onconfig.std
+#  Description: IBM Informix Dynamic Server Configuration Parameters
+#
+#**************************************************************************
+
+# Root Dbspace Configuration
+
+ROOTNAME        rootdbs         # Root dbspace name
+ROOTPATH        /db-spaces/01/rootdbs # Path for device containing root dbspace
+ROOTOFFSET      0               # Offset of root dbspace into device (Kbytes)
+ROOTSIZE        2500000         # Size of root dbspace (Kbytes) = 2.5 GB
+
+# Disk Mirroring Configuration Parameters
+
+MIRROR          0               # Mirroring flag (Yes = 1, No = 0)
+MIRRORPATH                      # Path for device containing mirrored root
+MIRROROFFSET    0               # Offset into mirrored device (Kbytes)
+
+# Physical Log Configuration
+
+PHYSDBS         rootdbs         # Location (dbspace) of physical log
+PHYSFILE        1000000         # Physical log file size (Kbytes)
+
+# Logical Log Configuration
+
+LOGFILES        50              # Number of logical log files
+LOGSIZE         20480           # Logical log size (Kbytes)
+
+# Tablespace Tablespace Configuration in Root Dbspace
+# Tan, siehe INFORMIX_NL_200612; test
+
+TBLTBLFIRST     10240           # First extent size (Kbytes) (0 = default)
+TBLTBLNEXT      10240           # Next extent size (Kbytes) (0 = default)
+
+# Security
+# DBCREATE_PERMISSION:
+# By default any user can create a database. Uncomment DBCREATE_PERMISSON to
+# limit database creation to a specific user. Add a new DBCREATE_PERMISSION
+# line for each permitted user.
+
+# DBCREATE_PERMISSION    	informix
+
+# DB_LIBRARY_PATH:
+# When loading a (C or C++) shared object (for a UDR or UDT), IDS checks that
+# the user-specified path starts with one of the directory prefixes listed in
+# the comma-separated list of prefixes in DB_LIBRARY_PATH. The string
+# "$INFORMIXDIR/extend" must be included in DB_LIBRARY_PATH in order for
+# extensibility and IBM supplied blades to work correctly.
+
+# DB_LIBRARY_PATH $INFORMIXDIR/extend
+
+
+# IFX_EXTEND_ROLE:
+# 0 (or off) => Disable use of EXTEND role to control who can register
+#               external routines.
+# 1 (or on)  => Enable use of EXTEND role to control who can register
+#               external routines. This is the default behaviour.
+#
+IFX_EXTEND_ROLE 0               # To control the usage of EXTEND role.
+
+# EILSEQ_COMPAT_MODE:
+# When processing characters, IDS checks if the characters are valid
+# for the locale and returns error -202 if they are not.  This causes
+# problems in some applications.  This parameter preserves the old
+# behavior and permits these characters.
+# 0 =>  Disallow illegal characters. This is the default behavior.
+# 1 =>  Allow illegal characters.
+#
+EILSEQ_COMPAT_MODE 0               
+
+# Diagnostics 
+
+MSGPATH         /var/informix/online.log # System message log file path
+MSG_DATE        1               # (default 0 disabled)append systemdate for each line in online.log
+CONSOLE         /dev/console    # System console message path
+
+# To automatically backup logical logs, edit alarmprogram.sh and set
+#ALARMPROGRAM  		/opt/informix/etc/alarmprogram.sh	# Alarm program path
+ALARMPROGRAM    /opt/informix/etc/log_full.sh # Alarm program path
+ALRM_ALL_EVENTS 0               # Triggers ALARMPROGRAM for any event occur
+TBLSPACE_STATS  1               # Maintain tblspace statistics
+
+
+# System Archive Tape Device
+
+TAPEDEV         /backup/informix/tapedev/tapedev # Tape device path      
+TAPEBLK        64               # Tape block size (Kbytes)
+TAPESIZE        0               # Maximum amount of data to put on tape (Kbytes)
+
+# Log Archive Tape Device
+
+LTAPEDEV        /backup/informix/tapedev/ltapedev   # Log tape device path
+LTAPEBLK        64               # Log tape block size (Kbytes)
+LTAPESIZE       0               # Max amount of data to put on log tape (Kbytes)
+
+# Optical
+
+STAGEBLOB                       # Informix Dynamic Server staging area 
+
+# System Configuration
+
+SERVERNUM       1               # Unique id corresponding to a OnLine instance
+DBSERVERNAME    demo            #Name of default database server
+#DBSERVERALIASES        						# List of alternate dbservernames
+NETTYPE         ipcshm,1,350,CPU # Configure poll thread(s) for nettype
+NETTYPE         soctcp,6,350,NET #April.06.2010 YD soctcp,2,350. Configure poll thread(s) for nettype
+DEADLOCK_TIMEOUT 60              # Max time to wait of lock in distributed env.
+RESIDENT        1               # Forced residency flag (Yes = 1, No = 0) [1/-1]
+
+MULTIPROCESSOR  1               # 0 for single-processor, 1 for multi-processor
+NUMCPUVPS       8               # Number of user (cpu) vps
+SINGLE_CPU_VP   0               # If non-zero, limit number of cpu vps to one
+NOAGE           1               # Process aging
+AFF_SPROC       0               # Affinity start processor
+AFF_NPROCS      8               # Affinity number of processors
+# Shared Memory Parameters
+
+# === Tan; 2008-01-28; circa 6 GB Arbeitsspeicher sind hier reserviert ===
+# BUFFERS			2097152				
+
+LOCKS           1000000         # Maximum number of locks(1M=40 MB; 1.44)
+NUMAIOVPS                       # Number of IO vps
+PHYSBUFF        1024            # Physical log buffer size (Kbytes)
+LOGBUFF         1024            # Logical log buffer size (Kbytes)
+CLEANERS        8              # Number of buffer cleaner processes
+
+SHMBASE         0x44000000        # Shared memory base address
+SHMVIRTSIZE     512000 # 8192 # initial virtual shared memory segment size
+SHMADD          32768           #April.06.2010 8192 YD # Size of new shared memory segments (Kbytes) [32768]
+EXTSHMADD       32768            #April.06.2010 8192 YD# Size of new extension shared memory segments (Kbytes)
+SHMTOTAL        0               # Total shared memory (Kbytes). 0=unlimited
+SHMVIRT_ALLOCSEG 0.000000        # Values between 0 and .99 are %, values > 1 are
+                        			        	# KB - when this much virtual memory is used we
+                                				# try to get a new segment. 0 means "off". 2nd
+					                      	# parameter is alarm level
+CKPTINTVL       300             # Check point interval (in sec)
+TXTIMEOUT       0x12c             # Transaction timeout (in sec)
+STACKSIZE       64              # Stack size (Kbytes)
+
+
+# Dynamic Logging
+# DYNAMIC_LOGS:
+#    2 : server automatically add a new logical log when necessary. (ON)
+#    1 : notify DBA to add new logical logs when necessary. (ON)
+#    0 : cannot add logical log on the fly. (OFF)
+#
+# When dynamic logging is on, we can have higher values for LTXHWM/LTXEHWM,
+# because the server can add new logical logs during long transaction rollback.
+# However, to limit the number of new logical logs being added, LTXHWM/LTXEHWM
+# can be set to smaller values.
+#
+# If dynamic logging is off, LTXHWM/LTXEHWM need to be set to smaller values
+# to avoid long transaction rollback hanging the server due to lack of logical
+# log space, i.e. 50/60 or lower.
+#
+# In case of system configured with CDR, the difference between LTXHWM and
+# LTXEHWM should be atleast 30% so that we could minimize log overrun issue.
+
+DYNAMIC_LOGS    2               
+LTXHWM          70              
+LTXEHWM         80              
+
+# System Page Size
+# BUFFSIZE - OnLine no longer supports this configuration parameter.
+#            To determine the page size used by OnLine on your platform
+#            see the last line of output from the command, 'onstat -b'.
+
+
+
+# Recovery Variables
+# OFF_RECVRY_THREADS:
+# Number of parallel worker threads during fast recovery or an offline restore.
+# ON_RECVRY_THREADS:
+# Number of parallel worker threads during an online restore.
+
+OFF_RECVRY_THREADS 10              # Default number of offline worker threads
+ON_RECVRY_THREADS 1               # Default number of online worker threads
+
+# Data Replication Variables
+# DRAUTO: 0 manual, 1 retain type, 2 reverse type
+DRAUTO          0               # DR automatic switchover
+DRINTERVAL      40              # DR max time between DR buffer flushes (in sec)
+DRTIMEOUT       20              # DR network timeout (in sec)
+DRLOSTFOUND     /opt/informix/etc/dr.lostfound # DR lost+found file path
+DRIDXAUTO       0               # DR automatic index repair. 0=off, 1=on
+
+# CDR Variables
+CDR_EVALTHREADS 1,2             # evaluator threads (per-cpu-vp,additional)
+CDR_DSLOCKWAIT  5               # DS lockwait timeout (seconds)
+CDR_QUEUEMEM    4096            # Maximum amount of memory for any CDR queue (Kbytes)
+CDR_NIFCOMPRESS 0               # Link level compression (-1 never, 0 none, 9 max)
+CDR_SERIAL      0,0             # Serial Column Sequence
+CDR_DBSPACE                     # dbspace for syscdr database
+CDR_QHDR_DBSPACE                 # CDR queue dbspace (default same as catalog) 
+CDR_QDATA_SBSPACE                 # List of CDR queue smart blob spaces 
+
+# CDR_MAX_DYNAMIC_LOGS
+# -1 => unlimited
+#  0 => disable dynamic log addition
+# >0 => limit the no. of dynamic log additions with the specified value.
+# Max dynamic log requests that CDR can make within one server session.
+
+CDR_MAX_DYNAMIC_LOGS 0               # Dynamic log addition disabled by default
+
+# Backup/Restore variables
+BAR_ACT_LOG     /var/informix/bar_act.log # ON-Bar Log file - not in /tmp please
+BAR_DEBUG_LOG   /var/informix/bar_dbug.log
+                                # ON-Bar Debug Log - not in /tmp please
+BAR_MAX_BACKUP  0               
+BAR_RETRY       1               
+BAR_NB_XPORT_COUNT 20              
+BAR_XFER_BUF_SIZE 31              
+RESTARTABLE_RESTORE on              
+BAR_PROGRESS_FREQ 0               
+
+# Informix Storage Manager variables
+ISM_DATA_POOL   ISMData         
+ISM_LOG_POOL    ISMLogs         
+
+# Read Ahead Variables
+RA_PAGES                        # Number of pages to attempt to read ahead
+RA_THRESHOLD                    # Number of pages left before next group
+
+
+# DBSPACETEMP:
+# OnLine equivalent of DBTEMP for SE. This is the list of dbspaces
+# that the OnLine SQL Engine will use to create temp tables etc.
+# If specified it must be a colon separated list of dbspaces that exist
+# when the OnLine system is brought online.  If not specified, or if
+# all dbspaces specified are invalid, various ad hoc queries will create
+# temporary files in /tmp instead.
+
+#DBSPACETEMP							# Default temp dbspaces
+DBSPACETEMP     dbs_temp01 
+
+# DUMP*:
+# The following parameters control the type of diagnostics information which
+# is preserved when an unanticipated error condition (assertion failure) occurs 
+# during OnLine operations.  
+# For DUMPSHMEM, DUMPGCORE and DUMPCORE 1 means Yes, 0 means No.
+
+DUMPDIR         /opt/informix/tmp # Preserve diagnostics in this directory
+DUMPSHMEM       1               # Dump a copy of shared memory
+DUMPGCORE       0               # Dump a core image using 'gcore'
+DUMPCORE        0               # Dump a core image (Warning:this aborts OnLine)
+DUMPCNT         1               # Number of shared memory or gcore dumps for 
+                                				# a single user's session
+
+FILLFACTOR      90              # Fill factor for building indexes
+
+# method for OnLine to use when determining current time
+USEOSTIME       0               # 0: use internal time(fast), 1: get time from OS(slow)
+
+
+# Parallel Database Queries (pdq)
+MAX_PDQPRIORITY 100             # Maximum allowed pdqpriority
+DS_MAX_QUERIES  10              # Maximum number of decision support queries 
+DS_TOTAL_MEMORY 6500000         # Decision support memory (Kbytes) 
+								# [ = SHMVIRTSIZE - 10 Megabyte ]
+DS_MAX_SCANS    1048576         # Maximum number of decision support scans       
+DS_NONPDQ_QUERY_MEM   65000       # 128 Before April.06.2010 YD    # Non PDQ query memory (Kbytes)
+DATASKIP        off             # List of dbspaces to skip
+
+
+# OPTCOMPIND
+# 0 => Nested loop joins will be preferred (where 
+#      possible) over sortmerge joins and hash joins. 
+# 1 => If the transaction isolation mode is not  
+#      "repeatable read", optimizer behaves as in (2) 
+#      below.  Otherwise it behaves as in (0) above. 
+# 2 => Use costs regardless of the transaction isolation
+#      mode.  Nested loop joins are not necessarily  
+#      preferred.  Optimizer bases its decision purely  
+#      on costs. 
+OPTCOMPIND      2               # To hint the optimizer
+
+DIRECTIVES      1               # Optimizer DIRECTIVES ON (1/Default) or OFF (0) 
+
+ONDBSPACEDOWN   2               # Dbspace down option: 0 = CONTINUE, 1 = ABORT, 2 = WAIT
+OPCACHEMAX      0               # Maximum optical cache size (Kbytes)
+
+
+# HETERO_COMMIT (Gateway participation in distributed transactions)
+# 1 => Heterogeneous Commit is enabled
+# 0 (or any other value) => Heterogeneous Commit is disabled
+HETERO_COMMIT   0               
+
+SBSPACENAME                     # Default smartblob space name - this is where blobs
+					                       	# go if no sbspace is specified when the smartblob is 
+					                       	# created. It is also used by some datablades as
+					                       	# the location to put their smartblobs. 
+SYSSBSPACENAME                  # Default smartblob space for use by the Informix 
+                       						# Server. This is used primarily for Informix Server
+					                       	# system statistics collection.
+BLOCKTIMEOUT    3600            # Default timeout for system block
+SYSALARMPROGRAM /opt/informix/etc/evidence.sh # System Alarm program path
+
+# Optimization goal: -1 = ALL_ROWS(Default), 0 = FIRST_ROWS
+OPT_GOAL        -1              
+ALLOW_NEWLINE   0               # embedded newlines(Yes = 1, No = 0 or anything but 1)
+
+#Create Index Online Shared Memory usage limitation 
+ONLIDX_MAXMEM   5120            # Per pool per index (Kbytes)
+
+#Timeout for client connection request
+LISTEN_TIMEOUT  10              # Timeout (in Seconds)
+
+#Following are the deprecated configuration parameters, instead of these
+#use BUFFERPOOL configuration parameter
+#BUFFERS, LRUS, LRU_MIN_DIRTY, LRU_MAX_DIRTY
+
+IFX_FOLDVIEW    0               # fold multiple tables or union all view with ansi joins
+# The following parameters are related to the buffer pool
+BUFFERPOOL	size=2K,buffers=150000,lrus=16,lru_min_dirty=10.000000,lru_max_dirty=15.000000
+BUFFERPOOL	size=4K,buffers=1500000,lrus=640,lru_min_dirty=0.200000,lru_max_dirty=0.400000
+ 
+DBSERVERALIASES                 # List of alternate dbservernames
+PLOG_OVERFLOW_PATH                 
+SBSPACETEMP                     
+MAX_INCOMPLETE_CONNECTIONS 1024            
+FASTPOLL        1               
+VP_MEMORY_CACHE_KB 0               
+AUTO_AIOVPS     1               
+DIRECT_IO       0               
+DEF_TABLE_LOCKMODE page            
+SHMNOACCESS                     
+AUTO_CKPTS      1               
+RTO_SERVER_RESTART 0               
+BAR_DEBUG       0               
+BAR_BSALIB_PATH                 
+BACKUP_FILTER                   
+RESTORE_FILTER                  
+BAR_PERFORMANCE 0               
+DD_HASHSIZE     31              
+DD_HASHMAX      10              
+DS_HASHSIZE     31              
+DS_POOLSIZE     127             
+PC_HASHSIZE     31              
+PC_POOLSIZE     127             
+STMT_CACHE      0               
+STMT_CACHE_HITS 0               
+STMT_CACHE_SIZE 512             
+STMT_CACHE_NOLIMIT 1               
+STMT_CACHE_NUMPOOL 1               
+USELASTCOMMITTED NONE            
+MAX_FILL_DATA_PAGES 0               
+BTSCANNER       num=1,threshold=5000,rangesize=-1,alice=6,compression=default 
+EXT_DIRECTIVES  0               
+AUTO_REPREPARE  1               
+EXPLAIN_STAT    1               
+SECURITY_LOCALCONNECTION 0               
+UNSECURE_ONSTAT 0               
+ADMIN_USER_MODE_WITH_DBSA 0               
+ADMIN_MODE_USERS                 
+SSL_KEYSTORE_LABEL                 
+PLCY_POOLSIZE   127             
+PLCY_HASHSIZE   31              
+USRC_POOLSIZE   127             
+USRC_HASHSIZE   31              
+ENCRYPT_HDR     0    
+ENCRYPT_SMX     0    
+ENCRYPT_CDR     0    
+ENCRYPT_CIPHERS                 
+ENCRYPT_MAC     medium          
+ENCRYPT_MACFILE builtin         
+ENCRYPT_SWITCH  0,0 
+CDR_SUPPRESS_ATSRISWARN                 
+HA_ALIAS                        
+LOG_INDEX_BUILDS 1               
+SDS_ENABLE      0               
+SDS_TIMEOUT     10              
+SDS_PAGING                      
+UPDATABLE_SECONDARY 0               
+FAILOVER_CALLBACK                 
+TEMPTAB_NOLOG   0               
+STORAGE_FULL_ALARM 600,3 
+RAS_PLOG_SPEED  50306           
+RAS_LLOG_SPEED  0               
+QSTATS          0               
+WSTATS          0               
+JVPJAVAHOME                     
+JVPHOME                         
+JVPPROPFILE     .jvpprops       
+JVPLOGFILE      jvp.log         
+JVPJAVALIB                      
+JVPJAVAVM       libjava.so      
+JVPCLASSPATH                    
+AUTO_LRU_TUNING 1               
+DELAY_APPLY     0               
+STOP_APPLY      0               
+LOG_STAGING_DIR                 

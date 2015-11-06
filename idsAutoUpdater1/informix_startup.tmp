@@ -1,0 +1,59 @@
+# !/bin/sh
+### BEGIN INIT INFO
+# Provides: informix
+# Required-Start: $network $syslog
+# Required-Stop: $network $syslog
+# Should-Start:
+# Should-Stop: 
+# Default-Start: 3 5
+# Default-Stop: 0 1 2 6
+# Short-Description: start/stop informix DB Server <instanz>
+# Description: this script start and stop the IBM Informix Server during bootup
+### END INIT INFO
+# start script prolog edited by Yd Wang Aug.06.2010 
+#
+# This script is used to control during bootup.
+#
+# usage: informixds [start|stop]
+#
+# start
+# Starts informixds (if enabled)
+# stop
+# Stops informixds.
+# modified by Yingding Wang 22.10.2009
+
+export INFORMIXDIR=/opt/informix
+export INFORMIXSERVER=demo
+export ONCONFIG=onconfig
+export INFORMIXSQLHOSTS=/opt/informix/etc/sqlhosts
+
+echo -e "\n\n\t######################################"
+echo -e "\t######  INFORMIX DATABASE SERVER #####"
+echo -e "\t######################################"
+STARTUP_ERRORS=/var/informix/startup_errors.log
+
+#
+# Main
+#
+case $1 in
+        start)
+                echo -e "###\t INFORMIX Data Server 11.50.FC4 proceed to start"
+                echo -e "\n\t    - Please be patient INFORMIX Database Server is starting: " `date` >>$STARTUP_ERRORS
+                echo -e "\n\n"
+                su informix -c '/opt/informix/bin/oninit -v' >>$STARTUP_ERRORS 2>/dev/console
+                        if [ $? -gt 0 ]; then
+                                tail -3 $STARTUP_ERRORS
+                        fi
+                echo done.
+                ;;
+        stop)
+                echo -e "\t### INFORMIX Data Server 11.50.FC4 proceed to stop"
+                echo -e "\n\t    - Please be patient INFORMIX Database Server is stopping: " `date` >>$STARTUP_ERRORS
+                echo -e "\n\n"
+                su informix -c '/opt/informix/bin/onmode -ky' > /dev/null 2>&2
+                echo done.
+                ;;
+esac
+
+exit
+

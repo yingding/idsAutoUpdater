@@ -1,0 +1,301 @@
+#!/bin/sh
+#
+# date +%<U|A> Ausgabe von date funktion mit speziellen Format (sieh man date)
+WOCHE=`date +%U`
+TAG=`date +%A`
+#
+#-----------------  config
+# BackupHOME verweist, wo das Backupsystem alle Backupsdateien schreiben soll.
+  BackupHOME=/backup/db-level-backup
+# Errorlog ist eine Datei wo alle Backup Versuche, die nicht erfolgreich abgeschlossen sind, die aufgetretene Probleme notieren muessen.
+  Errorlog=$BackupHOME/backup_errors.log
+# WochenLog ist eine Datei wo alle Backup Versuche, egal ob die erfolgreich oder nicht sind, alle Schritte notieren muessen.
+  WochenLog=$BackupHOME/KW$WOCHE/woche.log
+# Hier muss einige informix Variablen, die ganz notwendig fuer die richtige Funktionierung des Skripts, eingetragen werden.
+# INFORMIXDIR=/opt/informix
+  export INFORMIXDIR=/opt/informix
+  export INFORMIXSERVER=dummy
+# INFORMIXBIN=$INFORMIXDIR/bin
+#  export INFORMIXBIN=${INFORMIXDIR}/bin
+  export INFORMIXBIN=/opt/informix/bin
+  export INFORMIXSQLHOSTS=/opt/informix/etc/sqlhosts
+  export ONCONFIG=onconfig
+# ONCONFIGFILE=$INFORMIXDIR/etc/onconfig
+  export ONCONFIGFILE=${INFORMIXDIR}/etc/${ONCONFIG}
+
+# SIZE_WARNING ist ein Wert in Percent. Der Skript ueberprueft, ob der belegte Raum in  BackupHOME diese Grence uebergeschritten hat.
+#------ SIZE_WARNING=75 (Default)
+  SIZE_WARNING=75
+# Manuell Eingabe von TAPEDEV   
+  TapeDevice=/backup/informix/tapedev/tapedev
+# echo $TapeDevice 
+#----use this code to allowed auto TapeDevice Config, but if comment in ONCONFIG with key TAPEDEV exist, this code may not work correctly
+#declare -a tapdevrec
+#tapdevrec=(`grep -w TAPEDEV $ONCONFIGFILE`) 
+#TapeDevice=${tapdevrec[1]}
+
+#-----------------  config end
+#
+#
+POST_MESSAGE=message
+# SendNotification()ist eine Funktion, die fuer Versendung der Nachrichten sorgt.
+SendNotification()
+{
+# simplemailer Parameters: Mailserver Empfaenger Absender Betreff Nachricht
+  `echo $POST_MESSAGE | mail -s Backup_Failed -r Backup_System@.${INFORMIXSERVER}.domain.com root@localhost.com`    
+
+# echo " SendNotification()sagt $POST_MESSAGE "
+}
+#
+# hier gibt es 2 Ueberpruefungen, ob der Skript richtig angerufen ist.
+if [ $# -ne 1 ]
+  then
+  POST_MESSAGE="Es muss genau einen Parameter L0 | L1 | L2 eingegeben werden  "
+  SendNotification
+  echo "Es muss genau einen Parameter L0 | L1 | L2 eingegeben werden  "
+  exit 1
+fi
+#
+#
+if [ $1 != "L0" ] && [ $1 != "L1" ] && [ $1 != "L2" ]
+  then
+  POST_MESSAGE="Der Parameter muss L0 | L1 | L2 sein"
+  SendNotification
+  echo "Der Parameter muss L0 | L1 | L2 sein"
+  exit 1
+fi
+#
+#
+#declare -a tapdevrec
+#tapdevrec=(`grep -w TAPEDEV $ONCONFIGFILE`) 
+#TapeDevice=${tapdevrec[1]}
+# Hier muss getestet werden ob TapeDevice auch richtig ausgelesen werden können,
+# Falls TAPEDEV in kommentar vorhandeln sind, muss es gelöscht oder geändert werden.
+#
+ARBEITDIR=$BackupHOME/KW$WOCHE/$TAG
+#
+#
+if [ $1 = "L0" ]
+  then
+  LEVEL=0
+  ARBEITDIR=$BackupHOME/KW$WOCHE
+fi
+#
+# Die beide
+if [ $1 = "L1" ]
+  then
+  LEVEL=1
+  #ARBEITDIR=$BackupHOME/KW$WOCHE/$TAG
+fi
+#
+if [ $1 = "L2" ]
+  then
+  LEVEL=2
+  #ARBEITDIR=$BackupHOME/KW$WOCHE/$TAG
+fi
+#
+#
+#
+#
+#
+#
+FlushMainTape()
+{
+  # echo "FLUSH $TapeDevice"
+   rm $TapeDevice
+   touch $TapeDevice
+  # cat /dev/null >> $TapeDevice
+   chown informix.informix $TapeDevice
+   chmod 660 $TapeDevice
+}
+#
+#
+# echo "mkdir -v -p --mode=774 $ARBEITDIR"
+mkdir  -p --mode=774 $ARBEITDIR
+chown informix.informix $ARBEITDIR
+# chmod 660 $ARBEITDIR
+# ls -laF $ARBEITDIR
+#
+echo "--------------$(date +%y-%m-%d_%T)  AutoBackUp.sh ist gestartet------" >> $WochenLog
+#
+#
+#          Uberpruft, ob die Belegung der Festplatte die Grenze $SIZE_WARNING nicht ueberschrittet.
+#          Wenn die Grenze uebergeschrittet ist, sendet das Skript ein email.
+# declare an ARRAY
+declare -a ARR_AA
+#
+ARR_AA=(`df $BackupHOME`)
+# Ueberpruefen die Bereit von der 11ten Array element (die Benutzt prozent beinhaltet)
+# ob es z.b. 16% oder 3% Belegt ist.
+if [ ${#ARR_AA[11]} -eq 3 ]
+    then
+       BEL_SP=`echo ${ARR_AA[11]} | cut -c 1-2 `
+       # wenn es z.B. 16% belegt ist, wird 16 als 1 bis 2 spalte zu standard output ausgegeben    
+    else
+       BEL_SP=`echo ${ARR_AA[11]} | cut -c 1 `
+       # wenn es z.B. 3% belegt ist, wird 3 als 1 spalte zu standard output ausgegeben.
+fi
+#
+if [ $BEL_SP -gt $SIZE_WARNING ]
+    then
+       POST_MESSAGE="$(date +%y-%m-%d_%T) Backupplatz ist "
+       SendNotification
+fi
+#
+#
+#
+#
+#  Einige Pruefungen, ob die Batenbankuebereinstimung in ordnung ist. Es wird empfohlen, bevor jede level 0 Sicherung ein
+#  DB Consistency Check durchzufueren.
+CheckDB()
+{
+#---------------------------------------------------------------------------
+echo -n "$(date +%y.%m.%d_%T) OnLine Consistency Check - Validate reserved pages (oncheck -cr) ..." >> $WochenLog
+#
+CommandOutput=`$INFORMIXBIN/oncheck -cr`
+#
+if [ $? != 0 ]
+then
+    echo "Error: oncheck -cr failed to complete normally" >> $Errorlog
+    echo "oncheck -cr reported: $CommandOutput ">> $Errorlog
+    echo "---------------------------------------------------------------------------" >> $Errorlog
+
+    POST_MESSAGE="$(date +%y-%m-%d_%T) OnLine Consistency Check: ERROR oncheck -cr failed to complete normally"
+    SendNotification
+
+    echo "failed to complete normally" >> $WochenLog
+    echo "---------------------------------------------------------------------------" >> $WochenLog
+    exit 1
+fi
+#
+echo "done" >> $WochenLog
+#
+#---------------------------------------------------------------------------
+#
+echo -n "$(date +%y.%m.%d_%T) OnLine Consistency Check - Validate chunk free list ( oncheck -ce) ..." >> $WochenLog
+#
+     # OUTFILE=$LOGDIR/oncheck-ce.out
+     # $INFORMIXBIN/oncheck -ce > $OUTFILE
+#
+echo "Before oncheck -ce sys status is $?" >> $WochenLog
+CommandOutput=`$INFORMIXBIN/oncheck -ce`
+# run command and write the output to string commandoutput
+# 
+echo "After oncheck -ce sys status is $?" >> $WochenLog
+
+if [ $? != 0 ]
+then
+	echo "Error: oncheck -ce failed to complete normally" >> $Errorlog
+	echo "oncheck -ce reported: $CommandOutput ">> $Errorlog
+	echo "---------------------------------------------------------------------------" >> $Errorlog
+
+	POST_MESSAGE="$(date +%y-%m-%d_%T) OnLine Consistency Check: ERROR oncheck -ce failed to complete normally"
+        SendNotification
+
+	echo "failed to complete normally" >> $WochenLog
+        echo "---------------------------------------------------------------------------" >> $WochenLog
+	exit 1 
+#(ausgenommen by YD)
+fi
+#
+echo "done" >> $WochenLog
+#---------------------------------------------------------------------------
+echo -n  "$(date +%y.%m.%d_%T) OnLine Consistency Check - Validate system catalogs (oncheck -cc) ..." >> $WochenLog
+#
+# OUTFILE=$LOGDIR/oncheck-cc.out
+$INFORMIXBIN/oncheck -cc
+#
+## Note: check of return code removed because oncheck -cc always creates
+##	     stupid warning messages.
+##
+## if [ $? != 0 ]
+## then
+## 	 echo "Error: oncheck -cc failed to complete normally"
+## fi
+#
+# grep -i ERROR $OUTFILE
+#
+# chown informix:informix $OUTFILE
+echo "done" >> $WochenLog
+#---------------------------------------------------------------------------
+}
+#
+if  [ $LEVEL = 0 ]
+   then
+#  YW 
+   echo -n  "$(date +%y.%m.%d_%T) System Status before CheckDB is $?" >> $WochenLog
+   echo -n  "/n">> $WochenLog
+   CheckDB
+fi
+#
+#
+# Haupt Teil des Skripts
+#
+echo "$(date +%y-%m-%d_%T) Starting level $LEVEL ARCHIVE of INFORMIX-Online database"  >> $WochenLog
+#ls -laF /opt/informix/logfiles
+FlushMainTape
+#ls -laF /opt/informix/logfiles
+CommandOut=`$INFORMIXBIN/ontape -s -L $LEVEL <<-EOF | head -100`
+#echo "$INFORMIXBIN/ontape -s -L $LEVEL hat beendet mit code $?"
+IS_SUCC=`echo $CommandOut | grep -i "100 percent" `
+#
+#if  [ $? != 0 ] || [ -z "$IS_SUCC" ]
+if   [ -z "$IS_SUCC" ]
+  then
+#
+     echo "$(date +%y-%m-%d_%T) Fehlerhafte Beendigung ontape -s -L $LEVEL" >> $Errorlog
+     echo "ontape reported: $CommandOut">> $Errorlog
+     echo "---------------------------------------------------------------------------" >> $Errorlog
+#
+     echo "$(date +%y-%m-%d_%T) Fehlerhafte Beendigung ontape -s -L $LEVEL" >> $WochenLog
+#
+     POST_MESSAGE="$(date +%y-%m-%d_%T) Fehlerhafte Beendigung ontape -s -L $LEVEL   ontape reported: $CommandOut"
+     SendNotification
+#
+  else
+
+     echo "ontape reported: $CommandOut" >>  $WochenLog
+     echo "$(date +%y-%m-%d_%T) Die Komprimierung faengt an." >> $WochenLog
+     FILESDATE=$(date +%y-%m-%d_%T)
+     ArchivFile=$ARBEITDIR/$FILESDATE.$1
+    # echo "ln -s $TapeDevice $ArchivFile"
+     ln -s $TapeDevice $ArchivFile
+    # ls -laF /var/backup/backup_auto/KW44/Montag/
+     bzip2 -f $ArchivFile
+     if  [ $? != 0 ]
+         then
+	 echo "$(date +%y-%m-%d_%T) Fehlerhafte Beendigung bzip2 $ArchivFile" >> $Errorlog
+         echo "---------------------------------------------------------------------------" >> $Errorlog
+	 echo "$(date +%y-%m-%d_%T) Fehlerhafte Beendigung bzip2 $ArchivFile" >> $WochenLog
+	 echo "---------------------------------------------------------------------------">> $WochenLog
+         POST_MESSAGE="$(date +%y-%m-%d_%T) Fehlerhafte Beendigung bzip2 $ArchivFile"
+         SendNotification
+	 exit 1
+     fi
+     chown informix.informix $ArchivFile.bz2
+     chmod 640 $ArchivFile.bz2
+
+     if  [ $LEVEL = 0 ]
+        then
+        zip $ARBEITDIR/$FILESDATE.onconfig.zip  $ONCONFIGFILE
+	if  [ $? != 0 ]
+           then
+	   echo "$(date +%y-%m-%d_%T) Fehlerhafte Beendigung zip $ArchivFile" >> $Errorlog
+           echo "---------------------------------------------------------------------------" >> $Errorlog
+	   echo "$(date +%y-%m-%d_%T) Fehlerhafte Beendigung zip $ArchivFile" >> $WochenLog
+	   echo "---------------------------------------------------------------------------">> $WochenLog
+           POST_MESSAGE="$(date +%y-%m-%d_%T) Fehlerhafte Beendigung zip $ArchivFile"
+           SendNotification
+	  exit 1
+        fi
+        chown informix.informix $ARBEITDIR/$FILESDATE.onconfig.zip
+        chmod 640 $ARBEITDIR/$FILESDATE.onconfig.zip
+     fi
+
+     echo "$(date +%y-%m-%d_%T) Die Komprimierung ist fertig." >> $WochenLog
+     FlushMainTape
+
+fi
+
+
+echo "---------------------------------------------------------------------------">> $WochenLog
